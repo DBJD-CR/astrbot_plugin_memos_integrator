@@ -75,7 +75,7 @@ class MemosIntegratorPlugin(Star):
         return conversation_id
         
     @filter.on_llm_request()
-    async def on_llm_request(self, event: AstrMessageEvent, req: ProviderRequest):
+    async def inject_memories(self, event: AstrMessageEvent, req: ProviderRequest):
         """在LLM请求前获取记忆并注入"""
 
         # 获取会话ID和对话ID（从AstrBot框架）
@@ -128,7 +128,7 @@ class MemosIntegratorPlugin(Star):
             logger.info(f"未找到相关记忆，会话ID: {session_id}")
             
     @filter.on_llm_response()
-    async def on_llm_response(self, event: AstrMessageEvent, resp: LLMResponse):
+    async def save_memories(self, event: AstrMessageEvent, resp: LLMResponse):
         """在LLM响应后保存对话到记忆"""
 
         try:
