@@ -97,14 +97,6 @@ astrbot_plugin_memos_integrator/
 - `get_injection_template`: 获取注入模板
 - `format_memory_content`: 格式化记忆内容
 
-### MemOS客户端
-
-`MemOSClient`类负责与MemOS API的交互：
-
-- `search_memory`: 搜索记忆
-- `add_message`: 添加消息
-- `create_conversation`: 创建对话
-
 ## 许可证
 
 MIT License

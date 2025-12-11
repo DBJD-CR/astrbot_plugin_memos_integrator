@@ -5,7 +5,7 @@ MemOS记忆管理器
 
 import time
 from typing import List, Dict
-from .memos_client import MemOSClient
+from .memos_client import MemOS_Client
 from .memory_templates import MemoryTemplates
 
 from astrbot.api import logger
@@ -13,7 +13,7 @@ from astrbot.api import logger
 class MemoryManager:
     """MemOS记忆管理器"""
     
-    def __init__(self, client: MemOSClient):
+    def __init__(self, client: MemOS_Client):
         """初始化记忆管理器
         
         Args:
