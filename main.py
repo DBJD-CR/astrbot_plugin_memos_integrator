@@ -33,6 +33,7 @@ class MemosIntegratorPlugin(Star):
             # 验证配置
             if not self.config.get("api_key", ""):
                 logger.error("MemOS配置无效，请检查API密钥")
+                self.memory_manager = None
                 return False
                 
             # 初始化客户端和管理器
@@ -49,6 +50,7 @@ class MemosIntegratorPlugin(Star):
             return True
         except Exception as e:
             logger.error(f"初始化MemOS客户端失败: {e}")
+            self.memory_manager = None
             return False
             
     def _get_session_id(self, event: AstrMessageEvent) -> str:
@@ -77,6 +79,11 @@ class MemosIntegratorPlugin(Star):
     @filter.on_llm_request()
     async def inject_memories(self, event: AstrMessageEvent, req: ProviderRequest):
         """在LLM请求前获取记忆并注入"""
+
+        # 检查memory_manager是否已初始化
+        if self.memory_manager is None:
+            logger.warning("memory_manager未初始化，跳过记忆注入")
+            return
 
         # 获取会话ID和对话ID（从AstrBot框架）
         session_id = self._get_session_id(event)
@@ -132,6 +139,11 @@ class MemosIntegratorPlugin(Star):
         """在LLM响应后保存对话到记忆"""
 
         try:
+            # 检查memory_manager是否已初始化
+            if self.memory_manager is None:
+                logger.warning("memory_manager未初始化，跳过记忆保存")
+                return
+
             # 获取会话ID和对话ID（从AstrBot框架）
             session_id = self._get_session_id(event)
             conversation_id = await self._get_conversation_id(event)
@@ -153,12 +165,7 @@ class MemosIntegratorPlugin(Star):
                 
             logger.debug(f"用户消息长度: {len(user_message)}")
             logger.debug(f"AI响应长度: {len(ai_response)}")
-                
-            # 构建消息列表用于记忆保存
-            messages = [
-                {"role": "user", "content": user_message},
-                {"role": "assistant", "content": ai_response}
-            ]
+            
             
             # 使用记忆管理器保存对话（使用session_id作为user_id）
             success = await self.memory_manager.save_conversation(
