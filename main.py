@@ -156,13 +156,14 @@ class MemosIntegratorPlugin(Star):
             # 根据配置获取当前场景的注入类型
             injection_type = self.group_injection_type if is_group_message else self.private_injection_type
             
-            if session_id in self.original_prompts and injection_type == "user":
+            if session_id in self.original_prompts:
                 # 使用user注入：恢复原始prompt
-                original_prompt = self.original_prompts[session_id]
-                user_message = original_prompt
-                if req is not None:
-                    req.prompt = original_prompt
+                user_message = self.original_prompts[session_id]
+
                 del self.original_prompts[session_id]
+
+                if injection_type == "user" and req is not None:
+                    req.prompt = user_message
 
             if not user_message:
                 user_message = event.message_str
