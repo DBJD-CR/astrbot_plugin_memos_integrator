@@ -49,22 +49,22 @@ class MemoryManager:
                     if response.status == 200:
                         result = await response.json()
 
-                        # MemOS API 有两种响应格式：
-                        # 1. 标准格式: {"code": 200, "message": "...", "data": {...}}
-                        # 2. 直接返回数据: {"memory_detail_list": [...], "preference_detail_list": [...]}
+                        # MemOS API 响应格式: {"code": 0/200, "message": "...", "data": {...}}
+                        # code=0 表示成功 
 
                         if isinstance(result, dict):
-                            # 检查是否为标准格式（有code字段）
-                            if "code" in result:
-                                if result.get("code") == 200:
-                                    return {"success": True, "data": result.get("data", {})}
-                                else:
-                                    error_msg = result.get("message", "未知错误")
-                                    logger.error(f"MemOS API返回错误 (code={result.get('code')}): {error_msg}")
-                                    return {"success": False, "error": error_msg}
+                            code = result.get("code")
+                            message = result.get("message", "")
+
+                            # 成功的code是 0 
+                            if code == 0:
+                                data = result.get("data")
+                                logger.debug(f"MemOS API调用成功: {message}")
+                                return {"success": True, "data": data if data is not None else {}}
                             else:
-                                # 直接返回数据格式，直接使用整个result
-                                return {"success": True, "data": result}
+                                # 其他code视为错误
+                                logger.error(f"MemOS API返回错误 (code={code}): {message}")
+                                return {"success": False, "error": f"API错误 (code={code}): {message}"}
                         else:
                             logger.error(f"MemOS API返回了非字典类型的数据: {type(result)}")
                             return {"success": False, "error": "响应格式错误"}
