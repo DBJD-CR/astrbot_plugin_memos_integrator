@@ -114,6 +114,12 @@ class MemosIntegratorPlugin(Star):
             )
             
             if injection_type == "system":
+                # 清除先前注入的以"# Role"开头的system提示
+                req.contexts = [
+                    ctx for ctx in req.contexts 
+                    if not (ctx.get("role") == "system" and ctx.get("content", "").startswith("# Role"))
+                ]
+                
                 # 使用system注入：将记忆内容作为system消息添加到contexts中
                 # 由于模板已经根据injection_type生成了正确的内容，直接使用memory_prompt
                 req.contexts.append({
@@ -157,15 +163,6 @@ class MemosIntegratorPlugin(Star):
                 if req is not None:
                     req.prompt = original_prompt
                 del self.original_prompts[session_id]
-            elif injection_type == "system":
-                # 使用system注入：清除上下文中最后一个system提示词
-                if req is not None and req.contexts:
-                    # 从后往前查找最后一个system消息并删除
-                    for i in range(len(req.contexts) - 1, -1, -1):
-                        if req.contexts[i].get("role") == "system":
-                            del req.contexts[i]
-                            logger.debug(f"已清除会话 {session_id} 上下文中的system提示词")
-                            break
 
             if not user_message:
                 user_message = event.message_str
