@@ -148,7 +148,7 @@ class MemoryManager:
             limit: 返回的记忆数量限制
 
         Returns:
-            相关记忆的列表
+            相关记忆的列表，包含事实记忆和偏好记忆
         """
         try:
             logger.debug(f"开始检索相关记忆,查询: {query[:50]}..., 用户ID: {user_id}, 对话ID: {conversation_id}")
@@ -156,25 +156,79 @@ class MemoryManager:
             result = await self.search_memory(query, user_id, conversation_id)
 
             if result.get("success", False):
-                memories = result.get("data", [])
-                logger.info(f"检索到 {len(memories)} 条相关记忆,用户ID: {user_id}")
+                data = result.get("data", {})
 
-                # 转换为统一格式
+                # 检查data是否为字典类型（MemOS API返回格式）
+                if not isinstance(data, dict):
+                    logger.warning(f"API返回的data不是字典类型: {type(data)}")
+                    return []
+
                 memory_list = []
-                for memory in memories:
-                    memory_list.append({
-                        "type": memory.get("type", "fact"),
-                        "content": memory.get("content", ""),
-                        "timestamp": memory.get("timestamp", ""),
-                        "update_time": memory.get("update_time", time.time())
-                    })
+
+                # 解析事实记忆 (memory_detail_list)
+                memory_detail_list = data.get("memory_detail_list", [])
+                if isinstance(memory_detail_list, list):
+                    for memory in memory_detail_list:
+                        if isinstance(memory, dict):
+                            # 提取记忆内容和元数据
+                            content = memory.get("memory_value", "")
+                            memory_type = memory.get("memory_type", "LongTermMemory")
+                            update_time = memory.get("update_time", 0)
+
+                            # 格式化时间戳
+                            if isinstance(update_time, (int, float)) and update_time > 1000000000000:
+                                # 毫秒时间戳转换为秒
+                                update_time = update_time / 1000
+
+                            # 转换为可读日期格式
+                            if isinstance(update_time, (int, float)) and update_time > 0:
+                                timestamp = time.strftime("%Y-%m-%d", time.localtime(update_time))
+                            else:
+                                timestamp = str(update_time) if update_time else ""
+
+                            memory_list.append({
+                                "type": "fact",
+                                "content": content,
+                                "timestamp": timestamp,
+                                "update_time": update_time,
+                                "memory_type": memory_type
+                            })
+
+                # 解析偏好记忆 (preference_detail_list)
+                preference_detail_list = data.get("preference_detail_list", [])
+                if isinstance(preference_detail_list, list):
+                    for pref in preference_detail_list:
+                        if isinstance(pref, dict):
+                            # 提取偏好内容和元数据
+                            content = pref.get("preference", "")
+                            pref_type = pref.get("preference_type", "implicit_preference")
+                            update_time = pref.get("update_time", 0)
+
+                            # 格式化时间戳
+                            if isinstance(update_time, (int, float)) and update_time > 1000000000000:
+                                update_time = update_time / 1000
+
+                            if isinstance(update_time, (int, float)) and update_time > 0:
+                                timestamp = time.strftime("%Y-%m-%d", time.localtime(update_time))
+                            else:
+                                timestamp = str(update_time) if update_time else ""
+
+                            memory_list.append({
+                                "type": "preference",
+                                "content": content,
+                                "timestamp": timestamp,
+                                "update_time": update_time,
+                                "preference_type": pref_type
+                            })
+
+                logger.info(f"检索到 {len(memory_list)} 条相关记忆 (事实: {len(memory_detail_list)}, 偏好: {len(preference_detail_list)}), 用户ID: {user_id}")
 
                 return memory_list[:limit]  # 限制返回数量
             else:
                 logger.error(f"检索记忆失败: {result.get('error', '未知错误')}")
                 return []
         except Exception as e:
-            logger.error(f"检索相关记忆时出错: {e}")
+            logger.error(f"检索相关记忆时出错: {e}", exc_info=True)
             return []
 
     async def update_memory(self, messages: List[Dict], user_id: str, session_id: str, conversation_id: str) -> bool:
