@@ -148,19 +148,8 @@ class MemoryTemplates:
             account_protocol = cls.MEM_TOOL_ACCOUNT_PROTOCOL + "\n"
             query_instructions = cls.MEM_TOOL_QUERY_INSTRUCTIONS + "\n"
         
-        # 根据模型类型构建不同的模板
-        if model_type == "qwen":
-            # 通义千问模型，原始Query在前
-            template = f"""# Original Query
-{{original_query}}
-
-{mem_text}{system_context}{system_extra_info}
-{{memory_content}}
-
-{account_protocol}{query_instructions}"""
-        else:
-            # 默认模型，原始Query在后
-            template = f"""{mem_text}{system_context}{system_extra_info}
+        # 统一模板：所有模型都采用 Query 在后的方式
+        template = f"""{mem_text}{system_context}{system_extra_info}
 {{memory_content}}
 
 {account_protocol}{query_instructions}

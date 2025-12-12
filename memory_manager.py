@@ -240,9 +240,17 @@ class MemoryManager:
                                 "preference_type": pref_type
                             })
 
+                # 分别处理事实记忆和偏好记忆
+                # limit 只限制事实记忆的数量，偏好记忆全部保留
+                fact_memories = [m for m in memory_list if m.get("type") == "fact"]
+                preference_memories = [m for m in memory_list if m.get("type") == "preference"]
+
+                # 限制事实记忆数量，保留所有偏好记忆
+                final_memory_list = fact_memories[:limit] + preference_memories
+
                 logger.info(f"检索到 {len(memory_list)} 条相关记忆 (事实: {len(memory_detail_list)}, 偏好: {len(preference_detail_list)}), 用户ID: {user_id}")
 
-                return memory_list[:limit]  # 限制返回数量
+                return final_memory_list
             else:
                 logger.error(f"检索记忆失败: {result.get('error', '未知错误')}")
                 return []
