@@ -3,6 +3,7 @@ MemOS记忆集成插件
 使用HTTP方式实现记忆获取、注入和更新功能
 """
 
+import asyncio
 from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api.star import Context, Star, register
 from astrbot.api.provider import ProviderRequest, LLMResponse
@@ -181,17 +182,38 @@ class MemosIntegratorPlugin(Star):
             logger.debug(f"用户消息长度: {len(user_message)}")
             logger.debug(f"AI响应长度: {len(ai_response)}")
 
-            # 使用记忆管理器保存对话（使用session_id作为user_id）
-            success = await self.memory_manager.save_conversation(
-                user_message=user_message,
-                ai_response=ai_response,
-                user_id=session_id,
-                conversation_id=conversation_id
-            )
+            # 创建后台任务保存对话到MemOS（不阻塞响应返回）
+            async def _save_memory_task():
+                """后台保存记忆任务"""
+                try:
+                    success = await self.memory_manager.save_conversation(
+                        user_message=user_message,
+                        ai_response=ai_response,
+                        user_id=session_id,
+                        conversation_id=conversation_id
+                    )
+                    if success:
+                        logger.info(f"成功保存对话到MemOS，会话ID: {session_id}")
+                    else:
+                        logger.warning(f"保存对话到MemOS失败，会话ID: {session_id}")
+                except Exception as e:
+                    logger.error(f"后台保存对话记忆时出错，会话ID: {session_id}, 错误: {e}")
 
-            if success:
-                logger.info(f"成功保存对话到记忆，会话ID: {session_id}")
-            else:
-                logger.warning(f"保存对话到记忆失败，会话ID: {session_id}")
+            # 提交后台任务，不等待完成
+            task = asyncio.create_task(_save_memory_task())
+
+            # 添加回调处理任务异常（可选，但推荐）
+            def task_done_callback(t: asyncio.Task):
+                """后台任务完成时的回调，用于捕获未处理的异常"""
+                try:
+                    t.result()  # 获取任务结果，如果有异常会在这里抛出
+                except asyncio.CancelledError:
+                    logger.info(f"记忆保存任务被取消，会话ID: {session_id}")
+                except Exception as e:
+                    logger.error(f"后台记忆保存任务执行失败，会话ID: {session_id}, 错误: {e}", exc_info=True)
+
+            task.add_done_callback(task_done_callback)
+            logger.debug(f"已提交记忆保存任务到后台，会话ID: {session_id}")
+
         except Exception as e:
-            logger.error(f"保存对话记忆失败: {e}")
+            logger.error(f"处理记忆保存流程失败: {e}")
