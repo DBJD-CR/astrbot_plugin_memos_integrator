@@ -35,7 +35,7 @@ class MemoryManager:
             data: 请求数据
 
         Returns:
-            响应数据字典，格式: {"success": bool, "data": API返回的data字段内容}
+            响应数据字典，格式: {"success": bool, "data": API返回的内容}
         """
         url = f"{self.base_url}{endpoint}"
         headers = {
@@ -48,15 +48,26 @@ class MemoryManager:
                 async with session.post(url, headers=headers, json=data, timeout=aiohttp.ClientTimeout(total=30)) as response:
                     if response.status == 200:
                         result = await response.json()
-                        # MemOS API返回格式: {"code": 200, "message": "...", "data": {...}}
-                        # 检查API响应的code字段
-                        if isinstance(result, dict) and result.get("code") == 200:
-                            # 直接返回data字段的内容
-                            return {"success": True, "data": result.get("data", {})}
+
+                        # MemOS API 有两种响应格式：
+                        # 1. 标准格式: {"code": 200, "message": "...", "data": {...}}
+                        # 2. 直接返回数据: {"memory_detail_list": [...], "preference_detail_list": [...]}
+
+                        if isinstance(result, dict):
+                            # 检查是否为标准格式（有code字段）
+                            if "code" in result:
+                                if result.get("code") == 200:
+                                    return {"success": True, "data": result.get("data", {})}
+                                else:
+                                    error_msg = result.get("message", "未知错误")
+                                    logger.error(f"MemOS API返回错误 (code={result.get('code')}): {error_msg}")
+                                    return {"success": False, "error": error_msg}
+                            else:
+                                # 直接返回数据格式，直接使用整个result
+                                return {"success": True, "data": result}
                         else:
-                            error_msg = result.get("message", "未知错误") if isinstance(result, dict) else str(result)
-                            logger.error(f"MemOS API返回错误: {error_msg}")
-                            return {"success": False, "error": error_msg}
+                            logger.error(f"MemOS API返回了非字典类型的数据: {type(result)}")
+                            return {"success": False, "error": "响应格式错误"}
                     else:
                         error_text = await response.text()
                         logger.error(f"MemOS API请求失败 [{response.status}]: {error_text}")
