@@ -48,6 +48,10 @@ MemOS 是一个先进的记忆操作系统，为 AI 提供强大的记忆能力�
 - **多语言支持**: 支持中文和英文记忆注入
 - **安全协议**: 使用"四步判决"确保记忆使用的安全性
 
+## 查记忆、用户画像指令返回预览
+（图片中使用了额外的文转图功能，以支持markdown的渲染）
+<img width="1341" height="1347" alt="image" src="https://github.com/user-attachments/assets/36c66e83-6aac-45d7-8733-e7642ed5a200" />
+
 ## 安装
 
 1. 将插件文件夹复制到AstrBot的plugins目录
