@@ -17,7 +17,7 @@ from .memory_manager import MemoryManager
 from .commands_handler import CommandsHandler
 
 # 主插件类
-@register("astrbot_plugin_memos_integrator","zz6zz666", "MemOS记忆集成插件", "1.4.0")
+@register("astrbot_plugin_memos_integrator","zz6zz666", "MemOS记忆集成插件", "1.5.0")
 class MemosIntegratorPlugin(Star):
     PLUGIN_ID = "astrbot_plugin_memos_integrator"
     
